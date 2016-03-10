@@ -1,6 +1,6 @@
 object calculus extends AST with Evaluator with Printer with Parser {
     def main(args: Array[String]) = while(true) {
-        val input = readLine("λ> ")
+        val input = readLine("fun> ")
         handle(input)
     }
 

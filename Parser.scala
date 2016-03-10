@@ -39,7 +39,8 @@ trait Parser extends StdTokenParsers with PackratParsers {
 
     val lexical = new Lexer
 
-    lexical.delimiters ++= Seq("\\", "λ", ".", "(", ")")
+    lexical.delimiters ++= Seq("(", ")")
+    lexical.reserved += ("fun")
 
     def parse(str: String): Either[String, Term] = {
         val tokens = new lexical.Scanner(str)
@@ -53,7 +54,7 @@ trait Parser extends StdTokenParsers with PackratParsers {
         abstraction | application | variable | parens
 
     lazy val abstraction: PackratParser[ParsedTerm.Abstraction] =
-        ("λ" | "\\") ~> ident ~ "." ~ term ^^ { case name ~ "." ~ body  => ParsedTerm.Abstraction(name, body) }
+        "fun" ~> varInParens ~ term ^^ { case ParsedTerm.Variable(name) ~ body  => ParsedTerm.Abstraction(name, body) }
 
     lazy val application: PackratParser[ParsedTerm.Application] =
         term ~ term ^^ { case fn ~ arg => ParsedTerm.Application(fn, arg) }
@@ -61,4 +62,6 @@ trait Parser extends StdTokenParsers with PackratParsers {
     lazy val variable: PackratParser[ParsedTerm.Variable] = ident ^^ { name => ParsedTerm.Variable(name) }
 
     lazy val parens: PackratParser[ParsedTerm] = "(" ~> term <~ ")"
+
+    lazy val varInParens: PackratParser[ParsedTerm.Variable] = "(" ~> variable <~ ")"
 }
