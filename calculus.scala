@@ -1,4 +1,6 @@
-object calculus extends AST with Evaluator with Printer with Parser {
+import cats.data.Xor
+
+object calculus extends AST with Evaluator with Parser with Printer  {
     def main(args: Array[String]) = while(true) {
         val input = readLine("fun> ")
         handle(input)
@@ -6,11 +8,8 @@ object calculus extends AST with Evaluator with Printer with Parser {
 
     def handle(input: String): Unit =
         if (input == ":q") System.exit(0)
-        else parse(input) match {
-            case Left(error) =>
-                println(s"error: $error")
-            case Right(term) =>
-                println(s"parsed:    ${print(term)}")
-                println(s"evaluated: ${print(eval(term))}")
+        else parse(input).map(eval) match {
+            case Xor.Left(error) => println(s"$error")
+            case Xor.Right(term) => println(s"${print(term)}")
         }
 }

@@ -1,44 +1,15 @@
+import cats.data.Xor
+
 trait Evaluator {
     self: AST =>
 
-    def shift(d: Int, term: Term): Term = {
-        def walk(c: Int, t: Term): Term = t match {
-            case Term.Variable(index) =>
-                if (index >= c) Term.Variable(index + d)
-                else Term.Variable(index)
-            case Term.Abstraction(name, body) =>
-                Term.Abstraction(name, walk(c + 1, body))
-            case Term.Application(fn, arg) =>
-                Term.Application(walk(c, fn), walk(c, arg))
-        }
-        walk(0, term)
-    }
-
-    def substitute(target: Int, subs: Term, term: Term): Term = {
-        def walk(c: Int, t: Term): Term = t match {
-            case Term.Variable(index) =>
-                if (index == target + c) shift(c, subs)
-                else Term.Variable(index)
-            case Term.Abstraction(name, body) =>
-                Term.Abstraction(name, walk(c + 1, body))
-            case Term.Application(fn, arg) =>
-                Term.Application(walk(c, fn), walk(c, arg))
-        }
-        walk(0, term)
-    }
-
-    def reduce(subs: Term, term: Term): Term =
-        shift(-1, substitute(0, shift(1, subs), term))
-
-    def isValue(term: Term): Boolean = term match {
-        case Term.Abstraction(_, _) => true
-        case _ => false
-    }
+    def eval(term: Term): Term =
+        step(term).map(eval).getOrElse(term)
 
     def step(term: Term): Option[Term] = term match {
-        case Term.Application(Term.Abstraction(_, body), arg) if isValue(arg) =>
-            Some(reduce(arg, body))
-        case Term.Application(fn, arg) if isValue(fn) =>
+        case Term.Application(Term.Abstraction(name, body), arg@Term.Abstraction(_, _)) =>
+            Some(substitute(name, body, arg))
+        case Term.Application(fn@Term.Abstraction(_, _), arg) =>
             step(arg).map(Term.Application(fn, _))
         case Term.Application(fn, arg) =>
             step(fn).map(Term.Application(_, arg))
@@ -46,6 +17,14 @@ trait Evaluator {
             None
     }
 
-    def eval(term: Term): Term =
-        step(term).map(eval).getOrElse(term)
+    def substitute(forName: String, inTerm: Term, withTerm: Term): Term = inTerm match {
+        case Term.Variable(n) if n == forName =>
+            withTerm
+        case Term.Abstraction(n, body) if n != forName =>
+            Term.Abstraction(n, substitute(forName, body, withTerm))
+        case Term.Application(fn, arg) =>
+            Term.Application(substitute(forName, fn, withTerm), substitute(forName, arg, withTerm))
+        case term =>
+            term
+    }
 }
