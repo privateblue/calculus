@@ -4,14 +4,12 @@ import scala.util.parsing.combinator.PackratParsers
 
 import cats.data.Xor
 
-trait Parser extends StdTokenParsers with PackratParsers {
-    self: AST =>
-
+object Parser extends StdTokenParsers with PackratParsers {
     type Tokens = StdLexical
 
     val lexical = new StdLexical
-    lexical.delimiters ++= Seq("(", ")")
-    lexical.reserved += ("fun")
+    lexical.delimiters ++= Seq("(", ")", "=", "=>")
+    lexical.reserved += ("let", "in")
 
     def parse(str: String): Xor[String, Term] = {
         val tokens = new lexical.Scanner(str)
@@ -22,17 +20,18 @@ trait Parser extends StdTokenParsers with PackratParsers {
     }
 
     lazy val term: PackratParser[Term] =
-        abstraction | application | variable | parens
+        abstraction | application | variable | let | parens
 
     lazy val abstraction: PackratParser[Term.Abstraction] =
-        "fun" ~> varInParens ~ term ^^ { case Term.Variable(name) ~ body  => Term.Abstraction(name, body) }
+        variable ~ "=>" ~ term ^^ { case Term.Variable(name) ~ "=>" ~ body  => Term.Abstraction(name, body) }
 
     lazy val application: PackratParser[Term.Application] =
         term ~ term ^^ { case fn ~ arg => Term.Application(fn, arg) }
 
     lazy val variable: PackratParser[Term.Variable] = ident ^^ { name => Term.Variable(name) }
 
-    lazy val parens: PackratParser[Term] = "(" ~> term <~ ")"
+    lazy val let: PackratParser[Term.Let] =
+        "let" ~> ident ~ "=" ~ term ~ "in" ~ term ^^ { case name ~ "=" ~ bound ~ "in" ~ body => Term.Let(name, bound, body) }
 
-    lazy val varInParens: PackratParser[Term.Variable] = "(" ~> variable <~ ")"
+    lazy val parens: PackratParser[Term] = "(" ~> term <~ ")"
 }

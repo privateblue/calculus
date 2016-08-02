@@ -1,30 +1,33 @@
 import cats.data.Xor
 
-trait Evaluator {
-    self: AST =>
+object Evaluator {
+    type Env = List[(String, Term)]
 
-    def eval(term: Term): Term =
-        step(term).map(eval).getOrElse(term)
+    def eval(term: Term): Xor[String, Term] =
+        eval(term, List()).map(_._1)
 
-    def step(term: Term): Option[Term] = term match {
-        case Term.Application(Term.Abstraction(name, body), arg@Term.Abstraction(_, _)) =>
-            Some(substitute(name, body, arg))
-        case Term.Application(fn@Term.Abstraction(_, _), arg) =>
-            step(arg).map(Term.Application(fn, _))
-        case Term.Application(fn, arg) =>
-            step(fn).map(Term.Application(_, arg))
-        case _ =>
-            None
+    def eval(term: Term, bindings: Env): Xor[String, (Term, Env)] = term match {
+        case Term.Let(name, bound, body) => eval(body, (name -> bound) :: bindings)
+
+        case Term.Variable(name) => for {
+            split <- find(name, bindings)
+            (rest, (_, t)::bs) = split
+            value <- eval(t, bs)
+            (newterm, newbs) = value
+        } yield (newterm, rest ++ ((name -> newterm) :: newbs))
+
+        case Term.Abstraction(name, body) => Xor.right((term, bindings))
+
+        case Term.Application(fn, arg) => for {
+            value <- eval(fn, bindings)
+            (Term.Abstraction(name, body), bs) = value
+            result <- eval(body, (name -> arg) :: bs)
+        } yield result
     }
 
-    def substitute(forName: String, inTerm: Term, withTerm: Term): Term = inTerm match {
-        case Term.Variable(n) if n == forName =>
-            withTerm
-        case Term.Abstraction(n, body) if n != forName =>
-            Term.Abstraction(n, substitute(forName, body, withTerm))
-        case Term.Application(fn, arg) =>
-            Term.Application(substitute(forName, fn, withTerm), substitute(forName, arg, withTerm))
-        case term =>
-            term
+    def find(name: String, bindings: Env, prefix: Env = List()): Xor[String, (Env, Env)] = bindings match {
+        case Nil => Xor.left(s"$name not found")
+        case (n,t)::rest if n == name => Xor.right((prefix, bindings))
+        case head::rest => find(name, rest, prefix :+ head)
     }
 }
