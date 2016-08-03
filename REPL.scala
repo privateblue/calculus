@@ -1,8 +1,10 @@
+import scala.io.StdIn
+
 object REPL {
     def main(args: Array[String]): Unit = loop
 
     def loop: Unit = {
-        val input = readLine("fun> ")
+        val input = StdIn.readLine("fun> ")
         if (input == ":q") ()
         else {
             val msg = process(input)
