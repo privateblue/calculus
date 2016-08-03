@@ -1,4 +1,3 @@
-import cats._
 import cats.data.State
 import scala.io.StdIn
 
