@@ -4,9 +4,7 @@ import scala.util.parsing.combinator.PackratParsers
 
 import cats.data.Xor
 
-trait Parser extends StdTokenParsers with PackratParsers {
-    self: AST =>
-
+object Parser extends StdTokenParsers with PackratParsers {
     type Tokens = StdLexical
 
     val lexical = new StdLexical

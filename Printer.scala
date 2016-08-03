@@ -1,6 +1,4 @@
-trait Printer {
-    self: AST =>
-
+object Printer {
     def print(term: Term): String = term match {
         case Term.Variable(name) => name
         case Term.Abstraction(name, body) => s"fun($name) ${print(body)}"

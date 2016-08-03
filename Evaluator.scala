@@ -1,8 +1,4 @@
-import cats.data.Xor
-
-trait Evaluator {
-    self: AST =>
-
+object Evaluator {
     def eval(term: Term): Term =
         step(term).map(eval).getOrElse(term)
 
