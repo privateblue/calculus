@@ -1,7 +1,8 @@
-trait Printer {
-    self: AST =>
+object Printer {
+    def print(term: Term): String =
+        print(term, List())
 
-    def print(term: Term, names: List[String] = List()): String = term match {
+    def print(term: Term, names: List[String]): String = term match {
         case Term.Variable(index) =>
             names(index)
         case Term.Abstraction(name, body) =>

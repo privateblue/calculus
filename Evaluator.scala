@@ -1,6 +1,4 @@
-trait Evaluator {
-    self: AST =>
-
+object Evaluator {
     def shift(d: Int, term: Term): Term = {
         def walk(c: Int, t: Term): Term = t match {
             case Term.Variable(index) =>

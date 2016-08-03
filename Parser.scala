@@ -2,11 +2,9 @@ import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.combinator.PackratParsers
 
-import scala.util.Either
+import cats.data.Xor
 
-trait Parser extends StdTokenParsers with PackratParsers {
-    self: AST =>
-
+object Parser extends StdTokenParsers with PackratParsers {
     sealed trait ParsedTerm
     object ParsedTerm {
         case class Variable(name: String) extends ParsedTerm
@@ -14,20 +12,20 @@ trait Parser extends StdTokenParsers with PackratParsers {
         case class Application(fn: ParsedTerm, arg: ParsedTerm) extends ParsedTerm
     }
 
-    def canonical(named: ParsedTerm, names: List[String] = List.empty[String]): Either[String, Term] = named match {
+    def canonical(named: ParsedTerm, names: List[String] = List.empty[String]): Xor[String, Term] = named match {
         case ParsedTerm.Variable(name) =>
-            if (names.indexOf(name) == -1) Left(s"$name not found")
-            else Right(Term.Variable(names.indexOf(name)))
+            if (names.indexOf(name) == -1) Xor.left(s"$name not found")
+            else Xor.right(Term.Variable(names.indexOf(name)))
         case ParsedTerm.Abstraction(name, body) =>
             canonical(body, name::names) match {
-                case Right(b) => Right(Term.Abstraction(name, b))
-                case l@Left(_) => l
+                case Xor.Right(b) => Xor.right(Term.Abstraction(name, b))
+                case l@Xor.Left(_) => l
             }
         case ParsedTerm.Application(fn, arg) =>
             (canonical(fn, names), canonical(arg, names)) match {
-                case (l@Left(_), _) => l
-                case (_, l@Left(_)) => l
-                case (Right(f), Right(a)) => Right(Term.Application(f, a))
+                case (l@Xor.Left(_), _) => l
+                case (_, l@Xor.Left(_)) => l
+                case (Xor.Right(f), Xor.Right(a)) => Xor.right(Term.Application(f, a))
             }
     }
 
@@ -41,11 +39,11 @@ trait Parser extends StdTokenParsers with PackratParsers {
 
     lexical.delimiters ++= Seq("\\", "λ", ".", "(", ")")
 
-    def parse(str: String): Either[String, Term] = {
+    def parse(str: String): Xor[String, Term] = {
         val tokens = new lexical.Scanner(str)
         phrase(term)(tokens) match {
             case Success(parsed, _) => canonical(parsed)
-            case NoSuccess(err, _) => Left(err)
+            case NoSuccess(err, _) => Xor.left(err)
         }
     }
 
