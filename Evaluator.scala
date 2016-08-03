@@ -3,9 +3,6 @@ import cats.data.Xor
 object Evaluator {
     type Env = List[(String, Term)]
 
-    def eval(term: Term): Xor[String, Term] =
-        eval(term, List()).map(_._1)
-
     def eval(term: Term, bindings: Env): Xor[String, (Term, Env)] = term match {
         case Term.Let(name, bound, body) => eval(body, (name -> bound) :: bindings)
 
