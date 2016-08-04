@@ -26,7 +26,7 @@ object Parser extends StdTokenParsers with PackratParsers {
         variable ~ "=>" ~ term ^^ { case Term.Variable(name) ~ "=>" ~ body  => Term.Abstraction(name, body) }
 
     lazy val application: PackratParser[Term.Application] =
-        term ~ term ^^ { case fn ~ arg => Term.Application(fn, arg) }
+        term ~ (abstraction | variable | let | parens) ^^ { case fn ~ arg => Term.Application(fn, arg) }
 
     lazy val variable: PackratParser[Term.Variable] = ident ^^ { name => Term.Variable(name) }
 
